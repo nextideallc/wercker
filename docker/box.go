@@ -442,7 +442,7 @@ func (b *DockerBox) Run(ctx context.Context, env *util.Environment) (*docker.Con
 		return nil, err
 	}
 
-	client.StartContainer(container.ID, hostConfig)
+	err = client.StartContainer(container.ID, hostConfig)
 
 	if err != nil {
 		return nil, err
