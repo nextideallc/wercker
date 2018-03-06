@@ -443,6 +443,11 @@ func (b *DockerBox) Run(ctx context.Context, env *util.Environment) (*docker.Con
 	}
 
 	client.StartContainer(container.ID, hostConfig)
+
+	if err != nil {
+		return nil, err
+	}
+
 	b.container = container
 	return container, nil
 }
