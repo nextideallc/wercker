@@ -116,7 +116,12 @@ func (s *DockerStep) CollectFile(containerID, path, name string, dst io.Writer) 
 // CollectArtifact copies the artifacts associated with the Step.
 func (s *DockerStep) CollectArtifact(containerID string) (*core.Artifact, error) {
 	artificer := NewArtificer(s.options, s.dockerOptions)
-
+	var bucket string
+	if s.options.Store == "oci" {
+		bucket = s.options.Bucket
+	} else {
+		bucket = s.options.S3Bucket
+	}
 	// Ensure we have the host directory
 
 	artifact := &core.Artifact{
@@ -127,7 +132,9 @@ func (s *DockerStep) CollectArtifact(containerID string) (*core.Artifact, error)
 		ApplicationID: s.options.ApplicationID,
 		RunID:         s.options.RunID,
 		RunStepID:     s.SafeID(),
-		Bucket:        s.options.S3Bucket,
+		Store:         s.options.Store,
+		Namespace:     s.options.Namespace,
+		Bucket:        bucket,
 		ContentType:   "application/x-tar",
 	}
 

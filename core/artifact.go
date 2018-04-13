@@ -17,6 +17,7 @@ package core
 import (
 	"fmt"
 	"os"
+	"strings"
 	"path/filepath"
 
 	"github.com/wercker/wercker/util"
@@ -32,6 +33,8 @@ type Artifact struct {
 	ApplicationID string
 	RunID         string
 	RunStepID     string
+	Store         string
+	Namespace     string
 	Bucket        string
 	Key           string
 	ContentType   string
@@ -40,7 +43,12 @@ type Artifact struct {
 
 // URL returns the artifact's S3 url
 func (art *Artifact) URL() string {
-	return fmt.Sprintf("https://s3.amazonaws.com/%s/%s", art.Bucket, art.RemotePath())
+	if art.Store == "oci" {
+		remotePath := strings.Replace(art.RemotePath(), "/", "%2F", -1)
+		return fmt.Sprintf("https://objectstorage.us-ashburn-1.oraclecloud.com/n/%s/b/%s/o/%s", art.Namespace, art.Bucket, remotePath)
+	} else {
+		return fmt.Sprintf("https://s3.amazonaws.com/%s/%s", art.Bucket, art.RemotePath())
+	}
 }
 
 // RemotePath returns the S3 path for an artifact
