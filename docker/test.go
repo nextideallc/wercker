@@ -20,6 +20,7 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/wercker/wercker/util"
+	"golang.org/x/net/context"
 )
 
 // DockerOrSkip checks for a docker container and skips the test
@@ -40,8 +41,9 @@ func DockerOrSkip(t *testing.T) *DockerClient {
 }
 
 func MinimalDockerOptions() *Options {
+	ctx := context.Background()
 	opts := &Options{}
-	guessAndUpdateDockerOptions(opts, util.NewEnvironment(os.Environ()...))
+	guessAndUpdateDockerOptions(ctx, opts, util.NewEnvironment(os.Environ()...))
 	return opts
 }
 

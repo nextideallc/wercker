@@ -49,6 +49,7 @@ var (
 		ShortName: "b",
 		Usage:     "build a project",
 		Action: func(c *cli.Context) {
+			ctx := context.Background()
 			envfile := c.GlobalString("environment")
 			env := util.NewEnvironment(os.Environ()...)
 			env.LoadFile(envfile)
@@ -59,12 +60,12 @@ var (
 				cliLogger.Errorln("Invalid options\n", err)
 				os.Exit(1)
 			}
-			dockerOptions, err := dockerlocal.NewOptions(settings, env)
+			dockerOptions, err := dockerlocal.NewOptions(ctx, settings, env)
 			if err != nil {
 				cliLogger.Errorln("Invalid options\n", err)
 				os.Exit(1)
 			}
-			_, err = cmdBuild(context.Background(), opts, dockerOptions)
+			_, err = cmdBuild(ctx, opts, dockerOptions)
 			if err != nil {
 				cliLogger.Fatal(err)
 			}
@@ -76,6 +77,7 @@ var (
 		Name:  "dev",
 		Usage: "develop and run a local project",
 		Action: func(c *cli.Context) {
+			ctx := context.Background()
 			envfile := c.GlobalString("environment")
 			settings := util.NewCLISettings(c)
 			env := util.NewEnvironment(os.Environ()...)
@@ -85,12 +87,12 @@ var (
 				cliLogger.Errorln("Invalid options\n", err)
 				os.Exit(1)
 			}
-			dockerOptions, err := dockerlocal.NewOptions(settings, env)
+			dockerOptions, err := dockerlocal.NewOptions(ctx, settings, env)
 			if err != nil {
 				cliLogger.Errorln("Invalid options\n", err)
 				os.Exit(1)
 			}
-			_, err = cmdDev(context.Background(), opts, dockerOptions)
+			_, err = cmdDev(ctx, opts, dockerOptions)
 			if err != nil {
 				cliLogger.Fatal(err)
 			}
@@ -103,6 +105,7 @@ var (
 		// ShortName: "b",
 		Usage: "check the project's yaml",
 		Action: func(c *cli.Context) {
+			ctx := context.Background()
 			envfile := c.GlobalString("environment")
 			settings := util.NewCLISettings(c)
 			env := util.NewEnvironment(os.Environ()...)
@@ -112,7 +115,7 @@ var (
 				cliLogger.Errorln("Invalid options\n", err)
 				os.Exit(1)
 			}
-			dockerOptions, err := dockerlocal.NewOptions(settings, env)
+			dockerOptions, err := dockerlocal.NewOptions(ctx, settings, env)
 			if err != nil {
 				cliLogger.Errorln("Invalid options\n", err)
 				os.Exit(1)
@@ -130,6 +133,7 @@ var (
 		ShortName: "d",
 		Usage:     "deploy a project",
 		Action: func(c *cli.Context) {
+			ctx := context.Background()
 			envfile := c.GlobalString("environment")
 			settings := util.NewCLISettings(c)
 			env := util.NewEnvironment(os.Environ()...)
@@ -139,12 +143,12 @@ var (
 				cliLogger.Errorln("Invalid options\n", err)
 				os.Exit(1)
 			}
-			dockerOptions, err := dockerlocal.NewOptions(settings, env)
+			dockerOptions, err := dockerlocal.NewOptions(ctx, settings, env)
 			if err != nil {
 				cliLogger.Errorln("Invalid options\n", err)
 				os.Exit(1)
 			}
-			_, err = cmdDeploy(context.Background(), opts, dockerOptions)
+			_, err = cmdDeploy(ctx, opts, dockerOptions)
 			if err != nil {
 				cliLogger.Fatal(err)
 			}
@@ -179,7 +183,7 @@ var (
 		Action: func(c *cli.Context) {
 			// envfile := c.GlobalString("environment")
 			// _ = godotenv.Load(envfile)
-
+			ctx := context.Background()
 			settings := util.NewCLISettings(c)
 			env := util.NewEnvironment(os.Environ()...)
 			opts, err := core.NewInspectOptions(settings, env)
@@ -187,7 +191,7 @@ var (
 				cliLogger.Errorln("Invalid options\n", err)
 				os.Exit(1)
 			}
-			dockerOptions, err := dockerlocal.NewOptions(settings, env)
+			dockerOptions, err := dockerlocal.NewOptions(ctx, settings, env)
 			if err != nil {
 				cliLogger.Errorln("Invalid options\n", err)
 				os.Exit(1)
@@ -251,7 +255,7 @@ var (
 				cliLogger.Errorln("Pull requires the application ID or the build ID as the only argument")
 				os.Exit(1)
 			}
-
+			ctx := context.Background()
 			settings := util.NewCLISettings(c)
 			env := util.NewEnvironment(os.Environ()...)
 			opts, err := core.NewPullOptions(settings, env)
@@ -259,7 +263,7 @@ var (
 				cliLogger.Errorln("Invalid options\n", err)
 				os.Exit(1)
 			}
-			dockerOptions, err := dockerlocal.NewOptions(settings, env)
+			dockerOptions, err := dockerlocal.NewOptions(ctx, settings, env)
 			if err != nil {
 				cliLogger.Errorln("Invalid options\n", err)
 				os.Exit(1)
