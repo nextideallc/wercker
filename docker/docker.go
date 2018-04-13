@@ -90,8 +90,8 @@ type PushStatus struct {
 	ErrorDetail    *PushStatusErrorDetail    `json:"errorDetail,omitempty"`
 }
 
-func RequireDockerEndpoint(options *Options) error {
-	client, err := NewDockerClient(options)
+func RequireDockerEndpoint(ctx context.Context, options *Options) error {
+	client, err := NewOfficialDockerClient(options)
 	if err != nil {
 		if err == docker.ErrInvalidEndpoint {
 			return fmt.Errorf(`The given Docker endpoint is invalid:
@@ -102,7 +102,7 @@ func RequireDockerEndpoint(options *Options) error {
 		}
 		return err
 	}
-	_, err = client.Version()
+	_, err = client.ServerVersion(ctx)
 	if err != nil {
 		if err == docker.ErrConnectionRefused {
 			return fmt.Errorf(`You don't seem to have a working Docker environment or wercker can't connect to the Docker endpoint:

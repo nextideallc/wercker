@@ -956,7 +956,7 @@ func executePipeline(cmdCtx context.Context, options *core.PipelineOptions, dock
 	DumpOptions(options)
 
 	// Do some sanity checks before starting
-	err = dockerlocal.RequireDockerEndpoint(dockerOptions)
+	err = dockerlocal.RequireDockerEndpoint(cmdCtx, dockerOptions)
 	if err != nil {
 		return nil, soft.Exit(err)
 	}
