@@ -333,7 +333,7 @@ func (s *WatchStep) CollectFile(a, b, c string, dst io.Writer) error {
 }
 
 // CollectArtifact NOP
-func (s *WatchStep) CollectArtifact(string) (*core.Artifact, error) {
+func (s *WatchStep) CollectArtifact(context.Context, string) (*core.Artifact, error) {
 	return nil, nil
 }
 

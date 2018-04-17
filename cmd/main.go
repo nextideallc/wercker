@@ -1085,7 +1085,7 @@ func executePipeline(cmdCtx context.Context, options *core.PipelineOptions, dock
 		}
 		logger.Printf(f.Info("Running step", step.DisplayName()))
 		timer.Reset()
-		sr, err := r.RunStep(shared, step, stepCounter.Increment())
+		sr, err := r.RunStep(cmdCtx, shared, step, stepCounter.Increment())
 		if err != nil {
 			pr.Success = false
 			pr.FailedStepName = step.DisplayName()
@@ -1139,7 +1139,7 @@ func executePipeline(cmdCtx context.Context, options *core.PipelineOptions, dock
 				Logs: "Storing artifacts\n",
 			})
 
-			artifact, err := pipeline.CollectArtifact(shared.containerID)
+			artifact, err := pipeline.CollectArtifact(cmdCtx, shared.containerID)
 			// Ignore ErrEmptyTarball errors
 			if err != util.ErrEmptyTarball {
 				if err != nil {
@@ -1258,7 +1258,7 @@ func executePipeline(cmdCtx context.Context, options *core.PipelineOptions, dock
 		// into the CacheDir
 		if !options.DirectMount {
 			timer.Reset()
-			err = pipeline.CollectCache(shared.containerID)
+			err = pipeline.CollectCache(cmdCtx, shared.containerID)
 			if err != nil {
 				logger.WithField("Error", err).Error("Unable to store cache")
 			}
@@ -1317,7 +1317,7 @@ func executePipeline(cmdCtx context.Context, options *core.PipelineOptions, dock
 	for _, step := range pipeline.AfterSteps() {
 		logger.Println(f.Info("Running after-step", step.DisplayName()))
 		timer.Reset()
-		_, err := r.RunStep(newShared, step, stepCounter.Increment())
+		_, err := r.RunStep(cmdCtx, newShared, step, stepCounter.Increment())
 		if err != nil {
 			logger.Println(f.Fail("After-step failed", step.DisplayName(), timer.String()))
 			break
@@ -1329,7 +1329,7 @@ func executePipeline(cmdCtx context.Context, options *core.PipelineOptions, dock
 	// into the CacheDir
 	if !options.DirectMount {
 		timer.Reset()
-		err = pipeline.CollectCache(newShared.containerID)
+		err = pipeline.CollectCache(cmdCtx, newShared.containerID)
 		if err != nil {
 			logger.WithField("Error", err).Error("Unable to store cache")
 		}

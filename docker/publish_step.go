@@ -177,7 +177,7 @@ func (s *PublishStep) CollectFile(a, b, c string, dst io.Writer) error {
 }
 
 // CollectArtifact NOP
-func (s *PublishStep) CollectArtifact(string) (*core.Artifact, error) {
+func (s *PublishStep) CollectArtifact(context.Context, string) (*core.Artifact, error) {
 	return nil, nil
 }
 

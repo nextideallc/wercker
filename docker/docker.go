@@ -171,7 +171,7 @@ func (s *DockerScratchPushStep) Execute(ctx context.Context, sess *core.Session)
 	dt := sess.Transport().(*DockerTransport)
 	containerID := dt.containerID
 
-	_, err := s.CollectArtifact(containerID)
+	_, err := s.CollectArtifact(ctx, containerID)
 	if err != nil {
 		return -1, err
 	}
@@ -406,7 +406,7 @@ func (s *DockerScratchPushStep) Execute(ctx context.Context, sess *core.Session)
 
 // CollectArtifact is copied from the build, we use this to get the layer
 // tarball that we'll include in the image tarball
-func (s *DockerScratchPushStep) CollectArtifact(containerID string) (*core.Artifact, error) {
+func (s *DockerScratchPushStep) CollectArtifact(ctx context.Context, containerID string) (*core.Artifact, error) {
 	artificer := NewArtificer(s.options, s.dockerOptions)
 
 	// Ensure we have the host directory
@@ -432,10 +432,10 @@ func (s *DockerScratchPushStep) CollectArtifact(containerID string) (*core.Artif
 	}
 
 	// Get the output dir, if it is empty grab the source dir.
-	fullArtifact, err := artificer.Collect(artifact)
+	fullArtifact, err := artificer.Collect(ctx, artifact)
 	if err != nil {
 		if err == util.ErrEmptyTarball {
-			fullArtifact, err = artificer.Collect(sourceArtifact)
+			fullArtifact, err = artificer.Collect(ctx, sourceArtifact)
 			if err != nil {
 				return nil, err
 			}
@@ -988,7 +988,7 @@ func (s *DockerPushStep) CollectFile(a, b, c string, dst io.Writer) error {
 }
 
 // CollectArtifact NOP
-func (s *DockerPushStep) CollectArtifact(string) (*core.Artifact, error) {
+func (s *DockerPushStep) CollectArtifact(context.Context, string) (*core.Artifact, error) {
 	return nil, nil
 }
 

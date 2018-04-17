@@ -15,15 +15,13 @@
 package dockerlocal
 
 import (
-	"io"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
 
-	"github.com/fsouza/go-dockerclient"
+	"github.com/docker/docker/client"
 	"github.com/wercker/wercker/core"
 	"github.com/wercker/wercker/util"
+	"golang.org/x/net/context"
 )
 
 // Set upper limit that we can store
@@ -56,8 +54,8 @@ func NewArtificer(options *core.PipelineOptions, dockerOptions *Options) *Artifi
 
 // Collect an artifact from the container, if it doesn't have any files in
 // the tarball return util.ErrEmptyTarball
-func (a *Artificer) Collect(artifact *core.Artifact) (*core.Artifact, error) {
-	client, _ := NewDockerClient(a.dockerOptions)
+func (a *Artificer) Collect(ctx context.Context, artifact *core.Artifact) (*core.Artifact, error) {
+	client, _ := NewOfficialDockerClient(a.dockerOptions)
 
 	if err := os.MkdirAll(filepath.Dir(artifact.HostPath), 0755); err != nil {
 		return nil, err
@@ -70,22 +68,17 @@ func (a *Artificer) Collect(artifact *core.Artifact) (*core.Artifact, error) {
 	}
 
 	dfc := NewDockerFileCollector(client, artifact.ContainerID)
-	archive, errs := dfc.Collect(artifact.GuestPath)
+	archive, err := dfc.Collect(ctx, artifact.GuestPath)
+	if err != nil {
+		return nil, err
+	}
+	defer archive.Close()
+
+	// all reads from the archive are matched with correspnding writes to outputFile
 	archive.Tee(outputFile)
 
-	select {
-	case err = <-errs:
-	// TODO(termie): I hate this, but docker command either fails right away
-	//               or we don't care about it, needs to be replaced by some
-	//               sort of cancellable context
-	case <-time.After(1 * time.Second):
-		err = <-archive.Multi(filepath.Base(artifact.GuestPath), artifact.HostPath, maxArtifactSize)
-	}
-
+	err = <-archive.Multi(filepath.Base(artifact.GuestPath), artifact.HostPath, maxArtifactSize)
 	if err != nil {
-		if err == util.ErrEmptyTarball {
-			return nil, err
-		}
 		return nil, err
 	}
 	return artifact, nil
@@ -104,13 +97,13 @@ func (a *Artificer) Upload(artifact *core.Artifact) error {
 
 // DockerFileCollector impl of FileCollector
 type DockerFileCollector struct {
-	client      *DockerClient
+	client      *client.Client
 	containerID string
 	logger      *util.LogEntry
 }
 
 // NewDockerFileCollector constructor
-func NewDockerFileCollector(client *DockerClient, containerID string) *DockerFileCollector {
+func NewDockerFileCollector(client *client.Client, containerID string) *DockerFileCollector {
 	return &DockerFileCollector{
 		client:      client,
 		containerID: containerID,
@@ -118,33 +111,18 @@ func NewDockerFileCollector(client *DockerClient, containerID string) *DockerFil
 	}
 }
 
-// Collect grabs a path and returns an archive containing stream along with
-// an error channel to select on
-func (fc *DockerFileCollector) Collect(path string) (*util.Archive, chan error) {
-	pipeReader, pipeWriter := io.Pipe()
-
-	opts := docker.DownloadFromContainerOptions{
-		OutputStream: pipeWriter,
-		Path:         path,
+// Collect grabs a path and returns an Archive containing the stream along with
+// an error channel to select on.
+// When they have finished with the Archive, the caller must call Close().
+func (fc *DockerFileCollector) Collect(ctx context.Context, path string) (*util.Archive, error) {
+	reader, _, err := fc.client.CopyFromContainer(ctx, fc.containerID, path)
+	if err != nil {
+		// Ideally we would return an ErrEmptyTarball error if the API call failed with "Could not find the file",
+		// which means the path being downloaded does not exist, and return err otherwise.
+		// This is because some callers check for ErrEmptyTarball and ignore the error.
+		// However CopyFromContainer throws away the underlying error so we can't do this.
+		// We therefore convert all errors into an ErrEmptyTarball error.
+		return nil, util.ErrEmptyTarball
 	}
-
-	errs := make(chan error)
-
-	go func() {
-		defer close(errs)
-		if err := fc.client.DownloadFromContainer(fc.containerID, opts); err != nil {
-			switch err.(type) {
-			case *docker.Error:
-				derr := err.(*docker.Error)
-				if derr.Status == 500 && strings.HasPrefix(derr.Message, "Could not find the file") {
-					errs <- util.ErrEmptyTarball
-				}
-			default:
-				errs <- err
-			}
-		}
-		pipeWriter.Close()
-	}()
-
-	return util.NewArchive(pipeReader), errs
+	return util.NewArchive(reader, func() { reader.Close() }), nil
 }

@@ -119,7 +119,7 @@ func (s *ShellStep) CollectFile(a, b, c string, dst io.Writer) error {
 }
 
 // CollectArtifact NOP
-func (s *ShellStep) CollectArtifact(string) (*core.Artifact, error) {
+func (s *ShellStep) CollectArtifact(context.Context, string) (*core.Artifact, error) {
 	return nil, nil
 }
 

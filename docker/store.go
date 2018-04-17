@@ -195,7 +195,7 @@ func (s *StoreContainerStep) CollectFile(a, b, c string, dst io.Writer) error {
 }
 
 // CollectArtifact return an artifact pointing at the exported thing we made
-func (s *StoreContainerStep) CollectArtifact(string) (*core.Artifact, error) {
+func (s *StoreContainerStep) CollectArtifact(context.Context, string) (*core.Artifact, error) {
 	return s.artifact, nil
 }
 

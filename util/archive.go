@@ -38,11 +38,18 @@ type ArchiveProcessor interface {
 // Archive holds the tarball stream and provides methods to manipulate it
 type Archive struct {
 	stream io.Reader
+	closer func()
 }
 
 // NewArchive constructor
-func NewArchive(stream io.Reader) *Archive {
-	return &Archive{stream: stream}
+// If the reader needs to be closed after use then closer must be set to a func which will close the reader
+func NewArchive(stream io.Reader, closer func()) *Archive {
+	return &Archive{stream: stream, closer: closer}
+}
+
+// Close the archive
+func (a *Archive) Close() {
+	a.closer()
 }
 
 // Tee the tar stream to your own writer

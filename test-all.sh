@@ -121,7 +121,8 @@ runTests() {
   basicTest "service volume"    build "$testsDir/service-volume" --docker-local --enable-volumes  || return 1
   grep -q "test-volume-file" "${workingDir}/service volume.log" || return 1
   basicTest "source-path"       build "$testsDir/source-path" --docker-local || return 1
-  basicTest "rm pipeline"       build "$testsDir/rm-pipeline" --docker-local --artifacts  || return 1
+  basicTest "rm pipeline --artifacts" build "$testsDir/rm-pipeline" --docker-local --artifacts  || return 1
+  basicTest "rm pipeline"       build "$testsDir/rm-pipeline" --docker-local || return 1
   basicTest "local services"    build "$testsDir/local-service/service-consumer" --docker-local || return 1
   basicTest "deploy"            deploy "$testsDir/deploy-no-targets" --docker-local || return 1
   basicTest "deploy target"     deploy "$testsDir/deploy-targets" --docker-local  --deploy-target test || return 1

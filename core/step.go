@@ -98,7 +98,7 @@ type Step interface {
 	InitEnv(*util.Environment)
 	Execute(context.Context, *Session) (int, error)
 	CollectFile(string, string, string, io.Writer) error
-	CollectArtifact(string) (*Artifact, error)
+	CollectArtifact(context.Context, string) (*Artifact, error)
 	// TODO(termie): don't think this needs to be universal
 	ReportPath(...string) string
 }
@@ -481,7 +481,7 @@ func (s *ExternalStep) CollectFile(containerID, path, name string, dst io.Writer
 }
 
 // CollectArtifact noop
-func (s *ExternalStep) CollectArtifact(containerID string) (*Artifact, error) {
+func (s *ExternalStep) CollectArtifact(ctx context.Context, containerID string) (*Artifact, error) {
 	return nil, nil
 }
 

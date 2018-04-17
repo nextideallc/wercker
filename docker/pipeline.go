@@ -16,10 +16,10 @@ package dockerlocal
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/wercker/wercker/core"
 	"github.com/wercker/wercker/util"
+	"golang.org/x/net/context"
 )
 
 // DockerPipeline is our docker PipelineConfigurer and Pipeline impl
@@ -139,24 +139,23 @@ func NewDockerPipeline(name string, config *core.Config, options *core.PipelineO
 }
 
 // CollectCache extracts the cache from the container to the cachedir
-func (p *DockerPipeline) CollectCache(containerID string) error {
-	client, err := NewDockerClient(p.dockerOptions)
+func (p *DockerPipeline) CollectCache(ctx context.Context, containerID string) error {
+	client, err := NewOfficialDockerClient(p.dockerOptions)
 	if err != nil {
 		return err
 	}
 	dfc := NewDockerFileCollector(client, containerID)
 
-	archive, errs := dfc.Collect(p.options.GuestPath("cache"))
-
-	select {
-	case err = <-errs:
-	// TODO(termie): I hate this, but docker command either fails right away
-	//               or we don't care about it, needs to be replaced by some
-	//               sort of cancellable context
-	case <-time.After(1 * time.Second):
-		err = <-archive.Multi("cache", p.options.CachePath(), 1024*1024*1000)
+	archive, err := dfc.Collect(ctx, p.options.GuestPath("cache"))
+	if err != nil {
+		if err == util.ErrEmptyTarball {
+			return nil
+		}
+		return err
 	}
+	defer archive.Close()
 
+	err = <-archive.Multi("cache", p.options.CachePath(), 1024*1024*1000)
 	if err != nil {
 		if err == util.ErrEmptyTarball {
 			return nil

@@ -57,8 +57,8 @@ type Pipeline interface {
 	// Methods
 	CommonEnv() [][]string     // base
 	InitEnv(*util.Environment) // impl
-	CollectArtifact(string) (*Artifact, error)
-	CollectCache(string) error
+	CollectArtifact(context.Context, string) (*Artifact, error)
+	CollectCache(context.Context, string) error
 	LocalSymlink()
 	SetupGuest(context.Context, *Session) error
 	ExportEnvironment(context.Context, *Session) error

@@ -657,7 +657,7 @@ type StepResult struct {
 }
 
 // RunStep runs a step and tosses error if it fails
-func (p *Runner) RunStep(shared *RunnerShared, step core.Step, order int) (*StepResult, error) {
+func (p *Runner) RunStep(ctx context.Context, shared *RunnerShared, step core.Step, order int) (*StepResult, error) {
 	finisher := p.StartStep(shared, step, order)
 	sr := &StepResult{
 		Success:  false,
@@ -716,7 +716,7 @@ func (p *Runner) RunStep(shared *RunnerShared, step core.Step, order int) (*Step
 
 	// Grab artifacts if we want them
 	if p.options.ShouldArtifacts {
-		artifact, err := step.CollectArtifact(shared.containerID)
+		artifact, err := step.CollectArtifact(ctx, shared.containerID)
 		if err != nil {
 			return sr, err
 		}

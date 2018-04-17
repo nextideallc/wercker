@@ -20,6 +20,7 @@ import (
 
 	"github.com/wercker/wercker/core"
 	"github.com/wercker/wercker/util"
+	"golang.org/x/net/context"
 )
 
 // DockerDeploy is our basic wrapper for DockerDeploy operations
@@ -102,7 +103,7 @@ func (d *DockerDeploy) DockerMessage() string {
 // CollectArtifact copies the artifacts associated with the Deploy.
 // Unlike a Build, this will only collect the output directory if we made
 // a new one.
-func (d *DockerDeploy) CollectArtifact(containerID string) (*core.Artifact, error) {
+func (d *DockerDeploy) CollectArtifact(ctx context.Context, containerID string) (*core.Artifact, error) {
 	artificer := NewArtificer(d.options, d.dockerOptions)
 
 	artifact := &core.Artifact{
@@ -128,10 +129,10 @@ func (d *DockerDeploy) CollectArtifact(containerID string) (*core.Artifact, erro
 	}
 
 	// Get the output dir, if it is empty grab the source dir.
-	fullArtifact, err := artificer.Collect(artifact)
+	fullArtifact, err := artificer.Collect(ctx, artifact)
 	if err != nil {
 		if err == util.ErrEmptyTarball {
-			fullArtifact, err = artificer.Collect(sourceArtifact)
+			fullArtifact, err = artificer.Collect(ctx, sourceArtifact)
 			if err != nil {
 				return nil, err
 			}

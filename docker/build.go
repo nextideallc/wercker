@@ -20,6 +20,7 @@ import (
 
 	"github.com/wercker/wercker/core"
 	"github.com/wercker/wercker/util"
+	"golang.org/x/net/context"
 )
 
 type DockerBuild struct {
@@ -93,7 +94,7 @@ func (b *DockerBuild) DockerMessage() string {
 }
 
 // CollectArtifact copies the artifacts associated with the Build.
-func (b *DockerBuild) CollectArtifact(containerID string) (*core.Artifact, error) {
+func (b *DockerBuild) CollectArtifact(ctx context.Context, containerID string) (*core.Artifact, error) {
 	artificer := NewArtificer(b.options, b.dockerOptions)
 
 	// Ensure we have the host directory
@@ -121,10 +122,10 @@ func (b *DockerBuild) CollectArtifact(containerID string) (*core.Artifact, error
 	}
 
 	// Get the output dir, if it is empty grab the source dir.
-	fullArtifact, err := artificer.Collect(artifact)
+	fullArtifact, err := artificer.Collect(ctx, artifact)
 	if err != nil {
 		if err == util.ErrEmptyTarball {
-			fullArtifact, err = artificer.Collect(sourceArtifact)
+			fullArtifact, err = artificer.Collect(ctx, sourceArtifact)
 			if err != nil {
 				return nil, err
 			}
