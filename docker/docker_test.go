@@ -1,4 +1,4 @@
-//   Copyright 2016 Wercker Holding BV
+//   Copyright © 2016, 2018, Oracle and/or its affiliates.  All rights reserved.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 	"github.com/wercker/wercker/util"
+	"golang.org/x/net/context"
 )
 
 type DockerSuite struct {
@@ -32,8 +33,9 @@ func TestDockerSuite(t *testing.T) {
 }
 
 func (s *DockerSuite) TestPing() {
-	client := DockerOrSkip(s.T())
-	err := client.Ping()
+	ctx := context.Background()
+	client := DockerOrSkip(ctx, s.T())
+	_, err := client.Ping(ctx)
 	s.Nil(err)
 }
 

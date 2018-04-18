@@ -1,4 +1,4 @@
-//   Copyright 2016 Wercker Holding BV
+//   Copyright © 2016, 2018, Oracle and/or its affiliates.  All rights reserved.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -111,15 +111,14 @@ func NewDockerFileCollector(client *client.Client, containerID string) *DockerFi
 	}
 }
 
-// Collect grabs a path and returns an Archive containing the stream along with
-// an error channel to select on.
-// When they have finished with the Archive, the caller must call Close().
+// Collect grabs a path and returns an Archive containing the stream.
+// The caller must call Close() on the returned Archive after it has finished with it.
 func (fc *DockerFileCollector) Collect(ctx context.Context, path string) (*util.Archive, error) {
 	reader, _, err := fc.client.CopyFromContainer(ctx, fc.containerID, path)
 	if err != nil {
 		// Ideally we would return an ErrEmptyTarball error if the API call failed with "Could not find the file",
 		// which means the path being downloaded does not exist, and return err otherwise.
-		// This is because some callers check for ErrEmptyTarball and ignore the error.
+		// This is because some callers want to ignore ErrEmptyTarball errors.
 		// However CopyFromContainer throws away the underlying error so we can't do this.
 		// We therefore convert all errors into an ErrEmptyTarball error.
 		return nil, util.ErrEmptyTarball

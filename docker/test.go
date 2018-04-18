@@ -16,23 +16,30 @@ package dockerlocal
 
 import (
 	"os"
+	"strings"
 	"testing"
+	"time"
 
-	"github.com/fsouza/go-dockerclient"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
+	"github.com/pkg/errors"
+
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/wercker/wercker/util"
 	"golang.org/x/net/context"
 )
 
 // DockerOrSkip checks for a docker container and skips the test
 // if one is not available
-func DockerOrSkip(t *testing.T) *DockerClient {
+func DockerOrSkip(ctx context.Context, t *testing.T) *client.Client {
 	if os.Getenv("SKIP_DOCKER_TEST") == "true" {
 		t.Skip("$SKIP_DOCKER_TEST=true, skipping test")
 		return nil
 	}
 
-	client, err := NewDockerClient(MinimalDockerOptions())
-	err = client.Ping()
+	client, err := NewOfficialDockerClient(MinimalDockerOptions())
+	_, err = client.Ping(ctx)
 	if err != nil {
 		t.Skip("Docker not available, skipping test")
 		return nil
@@ -48,52 +55,61 @@ func MinimalDockerOptions() *Options {
 }
 
 type ContainerRemover struct {
-	*docker.Container
-	client *DockerClient
+	*container.ContainerCreateCreatedBody
+	client *client.Client
 }
 
-func TempBusybox(client *DockerClient) (*ContainerRemover, error) {
-	_, err := client.InspectImage("alpine")
+func TempBusybox(ctx context.Context, client *client.Client) (*ContainerRemover, error) {
+	_, _, err := client.ImageInspectWithRaw(ctx, "alpine:3.1")
 	if err != nil {
-		options := docker.PullImageOptions{
-			Repository: "alpine",
-			Tag:        "3.1",
-		}
-
-		err = client.PullImage(options, docker.AuthConfiguration{})
+		readCloser, err := client.ImagePull(ctx, "alpine:3.1", types.ImagePullOptions{})
 		if err != nil {
 			return nil, err
 		}
+		defer readCloser.Close()
 	}
 
-	container, err := client.CreateContainer(
-		docker.CreateContainerOptions{
-			Name: "temp-busybox",
-			Config: &docker.Config{
-				Image:           "alpine:3.1",
-				Tty:             false,
-				OpenStdin:       true,
-				Cmd:             []string{"/bin/sh"},
-				AttachStdin:     true,
-				AttachStdout:    true,
-				AttachStderr:    true,
-				NetworkDisabled: true,
-			},
-		},
-	)
-	if err != nil {
-		return nil, err
+	// It seems it takes some time for the new image to become available for container creation,
+	// so if the first attempt at starting the container fails with "No such image" we try again
+	timeout := time.After(10 * time.Second)
+	tick := time.Tick(500 * time.Millisecond)
+	for {
+		select {
+		case <-timeout:
+			return nil, errors.New("Timed out trying to start container")
+		case <-tick:
+			container, err := client.ContainerCreate(ctx,
+				&container.Config{
+					Image:           "alpine:3.1",
+					Cmd:             []string{"/bin/sh"},
+					Tty:             false,
+					OpenStdin:       true,
+					AttachStdin:     true,
+					AttachStdout:    true,
+					AttachStderr:    true,
+					NetworkDisabled: true,
+				}, &container.HostConfig{}, &network.NetworkingConfig{}, "temp-busybox")
+			if err == nil {
+				return &ContainerRemover{ContainerCreateCreatedBody: &container, client: client}, nil
+			} else if strings.HasPrefix(err.Error(), "Error: No such image:") {
+				// try again
+			} else if strings.HasPrefix(err.Error(), "Error response from daemon: Conflict. The container name \"/temp-busybox\" is already in use by container") {
+				// need to delete container left over from previous test run
+				err := client.ContainerRemove(ctx, "temp-busybox", types.ContainerRemoveOptions{RemoveVolumes: true})
+				if err != nil {
+					return nil, err
+				}
+				// try again
+			} else {
+				return nil, err
+			}
+		}
 	}
-
-	return &ContainerRemover{Container: container, client: client}, nil
 }
 
-func (c *ContainerRemover) Remove() {
+func (c *ContainerRemover) Remove(ctx context.Context) error {
 	if c == nil {
-		return
+		return nil
 	}
-	c.client.RemoveContainer(docker.RemoveContainerOptions{
-		ID:            c.Container.ID,
-		RemoveVolumes: true,
-	})
+	return c.client.ContainerRemove(ctx, c.ContainerCreateCreatedBody.ID, types.ContainerRemoveOptions{RemoveVolumes: true})
 }
